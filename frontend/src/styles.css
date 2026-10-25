@@ -697,3 +697,16 @@ td.right {
     right: 14px;
   }
 }
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: -6px;
+}
+
+.audit-detail {
+  max-width: 360px;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

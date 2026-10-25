@@ -4,13 +4,14 @@ import TodoForm from "../components/TodoForm.jsx";
 import TodoItem from "../components/TodoItem.jsx";
 import ChatWidget from "../components/ChatWidget.jsx";
 
-const TABS = ["Overview", "Users", "Todos"];
+const TABS = ["Overview", "Users", "Todos", "Activity"];
 
 export default function AdminDashboard({ me }) {
   const [tab, setTab] = useState("Overview");
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [todos, setTodos] = useState([]);
+  const [audit, setAudit] = useState([]);
   const [error, setError] = useState("");
 
   // Todo filters
@@ -21,14 +22,16 @@ export default function AdminDashboard({ me }) {
   const load = useCallback(async () => {
     try {
       const completed = statusFilter === "" ? undefined : statusFilter === "done";
-      const [s, u, t] = await Promise.all([
+      const [s, u, t, a] = await Promise.all([
         api.get("/admin/stats"),
         api.get("/admin/users"),
         api.get(`/admin/todos${qs({ owner_id: ownerFilter, completed, search: search.trim() })}`),
+        api.get("/admin/audit?limit=100"),
       ]);
       setStats(s);
       setUsers(u);
       setTodos(t);
+      setAudit(a);
       setError("");
     } catch (err) {
       setError(err.message);
@@ -214,6 +217,43 @@ export default function AdminDashboard({ me }) {
         </>
       )}
 
+      {tab === "Activity" && (
+        <section className="card table-wrap">
+          <h3 style={{ marginTop: 12 }}>Assistant activity</h3>
+          <p className="muted" style={{ margin: "0 0 8px" }}>
+            Every chatbot message and every action it took (latest 100). Passwords are never stored here.
+          </p>
+          {audit.length === 0 ? (
+            <div className="empty">No activity yet.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Who</th>
+                  <th>Type</th>
+                  <th>Details</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {audit.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.created_at ? new Date(a.created_at).toLocaleString() : ""}</td>
+                    <td>{a.username}</td>
+                    <td>{a.kind === "chat" ? "message" : a.tool}</td>
+                    <td className="audit-detail">{a.detail}</td>
+                    <td>
+                      <span className={`pill ${a.ok ? "pill-low" : "pill-high"}`}>{a.ok ? "ok" : "failed"}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
+
       <ChatWidget role="admin" userId={me.id} onAction={load} />
     </>
   );
@@ -240,7 +280,7 @@ function UserForm({ onSubmit }) {
     <form className="form-row wrap" onSubmit={submit}>
       <input type="email" placeholder="Email" value={form.email} onChange={set("email")} required />
       <input placeholder="Username" value={form.username} onChange={set("username")} minLength={3} required />
-      <input type="password" placeholder="Password" value={form.password} onChange={set("password")} minLength={6} required />
+      <input type="password" placeholder="Password" value={form.password} onChange={set("password")} minLength={8} required />
       <select value={form.role} onChange={set("role")}>
         <option value="user">user</option>
         <option value="admin">admin</option>

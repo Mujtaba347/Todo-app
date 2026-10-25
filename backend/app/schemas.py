@@ -11,7 +11,7 @@ Role = Literal["user", "admin"]
 class RegisterIn(BaseModel):
     email: EmailStr
     username: str = Field(min_length=3, max_length=80)
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
 
 
 class LoginIn(BaseModel):
@@ -38,7 +38,7 @@ class UserOut(BaseModel):
 class AdminUserCreate(BaseModel):
     email: EmailStr
     username: str = Field(min_length=3, max_length=80)
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
     role: Role = "user"
     is_active: bool = True
 
@@ -46,7 +46,7 @@ class AdminUserCreate(BaseModel):
 class AdminUserUpdate(BaseModel):
     email: EmailStr | None = None
     username: str | None = Field(default=None, min_length=3, max_length=80)
-    password: str | None = Field(default=None, min_length=6, max_length=128)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
     role: Role | None = None
     is_active: bool | None = None
 

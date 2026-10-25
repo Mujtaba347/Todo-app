@@ -154,6 +154,7 @@ export default function ChatWidget({ role, userId, onAction }) {
           <div className="chat-input">
             <textarea
               rows={1}
+              maxLength={4000}
               placeholder="Type a message…"
               value={input}
               onChange={(e) => setInput(e.target.value)}

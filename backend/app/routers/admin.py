@@ -1,10 +1,11 @@
+from sqlalchemy import select
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import services
 from ..database import get_db
 from ..deps import require_admin
-from ..models import User
+from ..models import AuditLog, User
 from ..schemas import (
     AdminTodoCreate,
     AdminTodoOut,
@@ -104,3 +105,25 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     except services.ServiceError as e:
         raise _http(e)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ----------------------------------------------------------------- audit log
+@router.get("/audit")
+def audit_log(limit: int = 100, kind: str | None = None, db: Session = Depends(get_db)):
+    """Recent chatbot messages and actions (who asked what, what the bot did)."""
+    q = select(AuditLog).order_by(AuditLog.id.desc()).limit(min(max(limit, 1), 500))
+    if kind in ("chat", "tool"):
+        q = q.where(AuditLog.kind == kind)
+    return [
+        {
+            "id": a.id,
+            "user_id": a.user_id,
+            "username": a.username,
+            "kind": a.kind,
+            "tool": a.tool,
+            "detail": a.detail,
+            "ok": a.ok,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in db.scalars(q)
+    ]

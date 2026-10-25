@@ -8,11 +8,19 @@ from datetime import date
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
+from .config import settings
 from .models import Todo, User
 from .security import hash_password
 
 PRIORITIES = {"low", "medium", "high"}
 ROLES = {"user", "admin"}
+
+
+def validate_password(password: str) -> None:
+    if len(password) < 8:
+        raise ServiceError("Password must be at least 8 characters")
+    if not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):
+        raise ServiceError("Password must contain at least one letter and one number")
 
 
 class ServiceError(Exception):
@@ -86,8 +94,7 @@ def create_user(
 ) -> User:
     if role not in ROLES:
         raise ServiceError("role must be 'user' or 'admin'")
-    if len(password) < 6:
-        raise ServiceError("Password must be at least 6 characters")
+    validate_password(password)
     email = email.strip().lower()
     username = username.strip()
     if len(username) < 3:
@@ -127,8 +134,7 @@ def update_user(db: Session, user_id: int, acting_user: User, **changes) -> User
     _ensure_unique(db, changes.get("email"), changes.get("username"), exclude_id=user.id)
 
     if "password" in changes:
-        if len(changes["password"]) < 6:
-            raise ServiceError("Password must be at least 6 characters")
+        validate_password(changes["password"])
         user.hashed_password = hash_password(changes.pop("password"))
     for key, value in changes.items():
         setattr(user, key, value)
@@ -203,6 +209,9 @@ def create_todo(
     if priority not in PRIORITIES:
         raise ServiceError("priority must be low, medium or high")
     get_user(db, owner_id)  # make sure the owner exists
+    existing = db.scalar(select(func.count(Todo.id)).where(Todo.owner_id == owner_id)) or 0
+    if existing >= settings.max_todos_per_user:
+        raise ServiceError(f"Todo limit reached ({settings.max_todos_per_user} per user). Delete some first.", 409)
     todo = Todo(
         title=title,
         description=description or "",

@@ -38,3 +38,20 @@ class Todo(Base):
     )
 
     owner: Mapped[User] = relationship(back_populates="todos")
+
+
+class AuditLog(Base):
+    """Every chatbot message and every action the chatbot performs."""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    username: Mapped[str] = mapped_column(String(80), default="")
+    kind: Mapped[str] = mapped_column(String(10), index=True)  # "chat" | "tool"
+    tool: Mapped[str] = mapped_column(String(60), default="")
+    detail: Mapped[str] = mapped_column(Text, default="")
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)

@@ -73,8 +73,9 @@ export default function AuthForm({ onLogin }) {
         )}
         <label>
           Password
-          <input type="password" value={form.password} onChange={set("password")} minLength={6} required />
+          <input type="password" value={form.password} onChange={set("password")} minLength={mode === "register" ? 8 : undefined} required />
         </label>
+        {mode === "register" && <div className="hint">At least 8 characters, with a letter and a number.</div>}
 
         {error && <div className="alert">{error}</div>}
         <button className="btn btn-primary btn-block" disabled={busy}>

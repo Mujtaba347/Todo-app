@@ -61,6 +61,7 @@ Edit `.env`:
 | `OPENROUTER_MODEL` | a model that supports **tool calling**, e.g. `openai/gpt-4o-mini` (default) |
 | `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` | the admin account, created on first start |
 | `ADMIN_BOT_ALLOW_SQL_WRITE` | `false` (default) or `true`, see "Chatbots" below |
+| `APP_ENV` | `development` locally, `production` on Render (enables strict startup checks) |
 
 Notes:
 - No spaces or quotes around values (`KEY=value`).
@@ -133,6 +134,24 @@ Each message goes to `POST /api/chat/user` or `POST /api/chat/admin`. The backen
 - The user assistant is deliberately limited to the signed-in user's own todos. The server injects the owner id, so prompting cannot reach other people's data.
 - Password hashes are never exposed to the model.
 - Data the bot reads is sent to OpenRouter and the model provider you chose. Using the API costs credits on your OpenRouter account.
+
+## Guardrails
+
+**Chatbot**
+- **Confirmation for destructive actions:** deleting a user, deleting all completed todos, and any SQL that changes data only run after the person confirmed in a *separate* message. This is enforced in server code, not only in the prompt.
+- **Scope:** the user assistant can only ever touch the signed-in user's own todos (the owner id is injected by the server).
+- **SQL safety (admin assistant):** one statement per call; read-only by default; no comments; `DROP / TRUNCATE / ALTER / GRANT / COPY / pg_sleep ...` blocked; `UPDATE`/`DELETE` need a `WHERE`; 5-second statement timeout; the audit log and password hashes are protected.
+- **Prompt-injection defense:** todo text and database rows are treated as data, never as instructions.
+- **Cost protection:** per-minute limit, daily message limit per user (50) and admin (200), maximum actions per message (10), message length cap.
+- **Audit log:** every chatbot message and action is recorded and visible in the admin console's **Activity** tab (passwords are masked).
+
+**API**
+- Login lockout after 5 failed attempts (15 minutes), sign-up rate limit per IP, optional `ALLOW_REGISTRATION=false`.
+- Passwords: at least 8 characters with a letter and a number.
+- Limit of 500 todos per user, security headers on every response.
+- With `APP_ENV=production` the backend **refuses to start** with a weak `SECRET_KEY` (< 32 chars) or the default admin password.
+
+All limits are configurable in `.env` (see `.env.example`). Rate limits are kept in memory, which is right for one server; with several servers move them to Redis.
 
 ## Troubleshooting
 
