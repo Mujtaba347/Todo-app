@@ -9,7 +9,6 @@
 
 ```
 todo-app/
-├── docker-compose.yml     optional: PostgreSQL (+ backend) in Docker
 ├── .env.example           copy to .env and fill in
 ├── backend/               FastAPI app
 │   └── app/
@@ -29,9 +28,7 @@ todo-app/
 | Node.js | 18+ (LTS) from https://nodejs.org | `node --version` |
 | PostgreSQL | 14+ (includes pgAdmin 4) | https://www.postgresql.org/download/ |
 
-Docker is **optional** (see the end). You do not need it.
-
-## 1. Set up PostgreSQL (no Docker)
+## 1. Set up PostgreSQL
 
 1. Install PostgreSQL with default options (port `5432`). Choose a password for the `postgres` user and remember it (letters and numbers only keeps things simple).
 2. Open **pgAdmin 4**, expand `Servers`, connect to your PostgreSQL server (enter the password).
@@ -170,9 +167,6 @@ All limits are configurable in `.env` (see `.env.example`). Rate limits are kept
 | Port 8000 busy | `uvicorn app.main:app --reload --port 8001` and change `8000` to `8001` in `frontend/vite.config.js`. |
 | Forgot the admin password | In pgAdmin run `DELETE FROM users WHERE role='admin';` (on `todo_app`), set a new `ADMIN_PASSWORD` in `.env` and restart the backend. A new admin is created. |
 
-## Optional: Docker
-
-If you have Docker Desktop: `docker compose up -d db` starts PostgreSQL (user `postgres`, password `postgres`, db `todo_app`). Use `DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/todo_app`. `docker compose up --build` also runs the backend in a container.
 
 ## Before going live
 
